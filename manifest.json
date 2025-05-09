@@ -1,0 +1,23 @@
+{
+	"manifest_version": 3,
+	"name": "GuardX",
+	"version": "1.0",
+	"description": "Detect and block sexual harassment and cyberbullying replies on your X account.",
+	"action": {
+		"default_popup": "login.html"
+	},
+	"permissions": ["storage", "tabs", "scripting"],
+	"host_permissions": ["<all_urls>"],
+	"background": {
+		"service_worker": "background.js"
+	},
+	"content_scripts": [
+		{
+			"matches": ["*://*/*"],
+			"js": ["content.js"]
+		}
+	],
+	"content_security_policy": {
+		"extension_pages": "script-src 'self'; object-src 'self'"
+	}
+}

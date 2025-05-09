@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GuardX - Authentication Error</title>
+		<link rel="stylesheet" href="styles/styles.css" />
+	</head>
+	<body>
+		<h1>Authentication Error</h1>
+
+		<div id="error-message" style="text-align: center; color: red; margin: 20px 0;">
+			An error occurred during authentication
+		</div>
+
+		<div style="text-align: center">
+			<button id="backToLoginBtn">Try Again</button>
+		</div>
+
+		<script>
+			// Display the error message from URL if available
+			document.addEventListener('DOMContentLoaded', () => {
+				const urlParams = new URLSearchParams(window.location.search);
+				const message = urlParams.get('message');
+				
+				if (message) {
+					document.getElementById('error-message').textContent = message;
+				}
+				
+				document.getElementById('backToLoginBtn').addEventListener('click', () => {
+					window.location.href = 'login.html';
+				});
+			});
+		</script>
+	</body>
+</html>
