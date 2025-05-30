@@ -5,16 +5,103 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>GuardX - Dashboard</title>
 		<link rel="stylesheet" href="styles/styles.css" />
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				background: #f7f7f7;
+				margin: 0;
+				padding: 0;
+			}
+
+			.container {
+				max-width: 400px;
+				margin: 40px auto;
+				background: #fff;
+				padding: 32px 24px;
+				border-radius: 12px;
+				box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+				text-align: center;
+			}
+
+			#user-info {
+				margin: 24px 0;
+			}
+
+			.switch-row {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				margin-top: 28px;
+				gap: 12px;
+			}
+
+			.switch {
+				position: relative;
+				display: inline-block;
+				width: 48px;
+				height: 24px;
+			}
+
+			.switch input {
+				opacity: 0;
+				width: 0;
+				height: 0;
+			}
+
+			.slider {
+				position: absolute;
+				cursor: pointer;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background-color: #ccc;
+				transition: 0.4s;
+				border-radius: 24px;
+			}
+
+			.slider:before {
+				position: absolute;
+				content: "";
+				height: 18px;
+				width: 18px;
+				left: 3px;
+				bottom: 3px;
+				background-color: white;
+				transition: 0.4s;
+				border-radius: 50%;
+			}
+
+			input:checked + .slider {
+				background-color: #1976d2;
+			}
+
+			input:checked + .slider:before {
+				transform: translateX(24px);
+			}
+
+			.switch-row h5 {
+				margin: 0;
+				font-weight: 500;
+				font-size: 1rem;
+			}
+		</style>
 	</head>
 	<body>
-		<h1>GuardX Dashboard</h1>
+		<div class="container">
+			<h1>GuardX Dashboard</h1>
 
-		<div id="user-info" style="text-align: center; margin: 20px 0;">
-			Loading user information...
-		</div>
+			<div id="user-info">Loading user information...</div>
 
-		<div style="text-align: center; margin-top: 20px;">
 			<button id="logoutBtn">Logout</button>
+
+			<div class="switch-row">
+				<label class="switch">
+					<input type="checkbox" />
+					<span class="slider round"></span>
+				</label>
+				<h5>Enable Protection</h5>
+			</div>
 		</div>
 
 		<script src="scripts/dashboard.js"></script>
