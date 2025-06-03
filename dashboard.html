@@ -4,42 +4,126 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>GuardX - Dashboard</title>
-		<link rel="stylesheet" href="styles/styles.css" />
 		<style>
-			body {
-				font-family: Arial, sans-serif;
-				background: #f7f7f7;
+			* {
 				margin: 0;
 				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+				min-height: 100vh;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 20px;
+				width: 500px;
 			}
 
 			.container {
-				max-width: 400px;
-				margin: 40px auto;
-				background: #fff;
-				padding: 32px 24px;
-				border-radius: 12px;
-				box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+				max-width: 420px;
+				width: 100%;
+				background: white;
+				border-radius: 20px;
+				box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+				overflow: hidden;
+			}
+
+			.header {
+				background: #09090b;
+				color: white;
+				padding: 30px 24px;
 				text-align: center;
 			}
 
+			.header h1 {
+				font-size: 28px;
+				font-weight: 600;
+				margin-bottom: 8px;
+			}
+
+			.header p {
+				opacity: 0.9;
+				font-size: 14px;
+			}
+
+			.content {
+				padding: 32px 24px;
+			}
+
 			#user-info {
-				margin: 24px 0;
+				background: #f8f9fa;
+				border-radius: 12px;
+				padding: 20px;
+				margin-bottom: 24px;
+				text-align: center;
+			}
+
+			#user-info h3 {
+				color: #333;
+				font-size: 16px;
+				margin-bottom: 8px;
+				font-weight: 500;
+			}
+
+			#user-info p {
+				color: #1976d2;
+				font-size: 18px;
+				font-weight: 600;
+			}
+
+			.controls-section {
+				margin-bottom: 24px;
+			}
+
+			.section-title {
+				font-size: 14px;
+				font-weight: 600;
+				color: #666;
+				margin-bottom: 16px;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
 			}
 
 			.switch-row {
 				display: flex;
 				align-items: center;
-				justify-content: center;
-				margin-top: 28px;
-				gap: 12px;
+				justify-content: space-between;
+				padding: 16px 20px;
+				background: #f8f9fa;
+				border-radius: 12px;
+				margin-bottom: 12px;
+				transition: all 0.3s ease;
+			}
+
+			.switch-row:hover {
+				background: #e9ecef;
+			}
+
+			.switch-info {
+				flex: 1;
+			}
+
+			.switch-info h5 {
+				font-size: 16px;
+				font-weight: 500;
+				color: #333;
+				margin-bottom: 4px;
+			}
+
+			.switch-info p {
+				font-size: 12px;
+				color: #666;
+				margin: 0;
 			}
 
 			.switch {
 				position: relative;
 				display: inline-block;
-				width: 48px;
-				height: 24px;
+				width: 52px;
+				height: 28px;
+				margin-left: 16px;
 			}
 
 			.switch input {
@@ -56,20 +140,21 @@
 				right: 0;
 				bottom: 0;
 				background-color: #ccc;
-				transition: 0.4s;
-				border-radius: 24px;
+				transition: 0.3s;
+				border-radius: 28px;
 			}
 
 			.slider:before {
 				position: absolute;
 				content: "";
-				height: 18px;
-				width: 18px;
+				height: 22px;
+				width: 22px;
 				left: 3px;
 				bottom: 3px;
 				background-color: white;
-				transition: 0.4s;
+				transition: 0.3s;
 				border-radius: 50%;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 			}
 
 			input:checked + .slider {
@@ -80,27 +165,129 @@
 				transform: translateX(24px);
 			}
 
-			.switch-row h5 {
-				margin: 0;
+			.main-protection {
+				background: #09090b;
+				color: white;
+			}
+
+			.main-protection:hover {
+				background: #09090b;
+			}
+
+			.main-protection .switch-info h5 {
+				color: white;
+			}
+
+			.main-protection .switch-info p {
+				color: rgba(255, 255, 255, 0.8);
+			}
+
+			#logoutBtn {
+				width: 100%;
+				padding: 14px;
+				background: #dc3545;
+				color: white;
+				border: none;
+				border-radius: 12px;
+				font-size: 16px;
 				font-weight: 500;
-				font-size: 1rem;
+				cursor: pointer;
+				transition: all 0.3s ease;
+				margin-top: 16px;
+			}
+
+			#logoutBtn:hover {
+				background: #c82333;
+				transform: translateY(-1px);
+			}
+
+			#goToLoginBtn {
+				background: #1976d2;
+				color: white;
+				border: none;
+				padding: 12px 24px;
+				border-radius: 8px;
+				font-size: 14px;
+				cursor: pointer;
+				margin-top: 12px;
+				transition: all 0.3s ease;
+			}
+
+			#goToLoginBtn:hover {
+				background: #1565c0;
+			}
+
+			.error-state {
+				color: #dc3545;
+				text-align: center;
+			}
+
+			.error-state p {
+				margin-bottom: 12px;
+			}
+
+			#status-indicator {
+				margin-top: 20px !important;
+				border-radius: 12px !important;
+				padding: 16px !important;
+				font-size: 14px;
+				font-weight: 500;
+				text-align: center;
 			}
 		</style>
 	</head>
 	<body>
 		<div class="container">
-			<h1>GuardX Dashboard</h1>
+			<div class="header">
+				<h1>GuardX</h1>
+				<p>Keeping you from "HELL" in X</p>
+			</div>
 
-			<div id="user-info">Loading user information...</div>
+			<div class="content">
+				<div id="user-info">Loading user information...</div>
 
-			<button id="logoutBtn">Logout</button>
+				<div class="controls-section">
+					<div class="section-title">Automated Actions</div>
 
-			<div class="switch-row">
-				<label class="switch">
-					<input type="checkbox" />
-					<span class="slider round"></span>
-				</label>
-				<h5>Enable Protection</h5>
+					<div class="switch-row">
+						<div class="switch-info">
+							<h5>Auto Hide</h5>
+							<p>Automatically hide toxic replies</p>
+						</div>
+						<label class="switch">
+							<input type="checkbox" />
+							<span class="slider"></span>
+						</label>
+					</div>
+
+					<div class="switch-row">
+						<div class="switch-info">
+							<h5>Auto Mute</h5>
+							<p>Automatically mute toxic users</p>
+						</div>
+						<label class="switch">
+							<input type="checkbox" />
+							<span class="slider"></span>
+						</label>
+					</div>
+				</div>
+
+				<div class="controls-section">
+					<div class="section-title">Protection Service</div>
+
+					<div class="switch-row main-protection">
+						<div class="switch-info">
+							<h5>Enable Protection</h5>
+							<p>Monitor and protect from toxic content</p>
+						</div>
+						<label class="switch">
+							<input type="checkbox" />
+							<span class="slider"></span>
+						</label>
+					</div>
+				</div>
+
+				<button id="logoutBtn">Logout</button>
 			</div>
 		</div>
 

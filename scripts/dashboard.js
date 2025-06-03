@@ -1,9 +1,15 @@
 document.addEventListener("DOMContentLoaded", () => {
 	const userInfoElement = document.getElementById("user-info");
 	const logoutBtn = document.getElementById("logoutBtn");
-	const protectionToggle = document.querySelector(
-		'.switch input[type="checkbox"]',
-	);
+	const protectionToggle = document.querySelectorAll(
+		'.switch input[type="checkbox"]'
+	)[2]; // Third toggle is Enable Protection
+	const autoHideToggle = document.querySelectorAll(
+		'.switch input[type="checkbox"]'
+	)[0]; // First toggle is Auto Hide
+	const autoMuteToggle = document.querySelectorAll(
+		'.switch input[type="checkbox"]'
+	)[1]; // Second toggle is Auto Mute
 	const statusIndicator =
 		document.getElementById("status-indicator") ||
 		document.createElement("div");
@@ -15,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		statusIndicator.style.borderRadius = "5px";
 		userInfoElement.parentNode.insertBefore(
 			statusIndicator,
-			userInfoElement.nextSibling,
+			userInfoElement.nextSibling
 		);
 	}
 
@@ -50,10 +56,9 @@ document.addEventListener("DOMContentLoaded", () => {
 				method: "GET",
 			});
 
-			// Handle rate limiting
 			if (response.status === 429) {
 				const retryAfter = response.headers.get("retry-after");
-				let waitTime = 60; // Default to 60 seconds
+				let waitTime = 60 * 15; // Default to 15 minutes
 
 				if (retryAfter) {
 					waitTime = Number.parseInt(retryAfter, 10);
@@ -64,7 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				consecutiveErrors++;
 				updateStatus(
 					`Rate limited by Twitter API. Retrying in ${waitTime} seconds...`,
-					"warning",
+					"warning"
 				);
 				throw new Error(`Rate limited. Retry after ${waitTime} seconds`);
 			}
@@ -86,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			updateStatus(
 				`Successfully fetched ${data.data.length} tweets`,
-				"success",
+				"success"
 			);
 			return data.data || [];
 		} catch (error) {
@@ -102,25 +107,22 @@ document.addEventListener("DOMContentLoaded", () => {
 			"tweet.fields": "author_id,created_at,in_reply_to_user_id,id,text",
 			expansions: "author_id",
 			"user.fields": "username",
-			max_results: "25", // Reduced from 100 to avoid rate limits
+			max_results: "25",
 		});
 
 		try {
-			// Add delay between API calls to avoid rate limiting
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 
 			const response = await fetch(`${endpoint}?${params}`, {
 				headers: {
 					Authorization: `Bearer ${accessToken}`,
-					"X-Rate-Limit-Limit": "*", // Request rate limit info
 				},
 				method: "GET",
 			});
 
-			// Handle rate limiting
 			if (response.status === 429) {
 				const retryAfter = response.headers.get("retry-after");
-				let waitTime = 60; // Default to 60 seconds
+				let waitTime = 60 * 15; // Default to 15 minutes
 
 				if (retryAfter) {
 					waitTime = Number.parseInt(retryAfter, 10);
@@ -131,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				consecutiveErrors++;
 				updateStatus(
 					`Rate limited when fetching replies. Waiting ${waitTime} seconds...`,
-					"warning",
+					"warning"
 				);
 				throw new Error(`Rate limited. Retry after ${waitTime} seconds`);
 			}
@@ -152,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			return {
 				tweets: data.data || [],
-				users: data.includes?.users || []
+				users: data.includes?.users || [],
 			};
 		} catch (error) {
 			console.error(`Error fetching replies for ${conversationId}:`, error);
@@ -170,33 +172,56 @@ document.addEventListener("DOMContentLoaded", () => {
 			console.log("Sending data to predictor:", formattedData);
 
 			const storageData = await new Promise((resolve) => {
-				chrome.storage.local.get(["backend_token"], (result) => {
-					resolve(result);
-				});
+				chrome.storage.local.get(
+					[
+						"backend_token",
+						"guardx_auto_hide_enabled",
+						"guardx_auto_mute_enabled",
+					],
+					(result) => {
+						resolve(result);
+					}
+				);
 			});
 
 			const backendToken = storageData.backend_token;
-			
+			const autoHideEnabled = storageData.guardx_auto_hide_enabled || false;
+			const autoMuteEnabled = storageData.guardx_auto_mute_enabled || false;
+
 			if (!backendToken) {
 				console.error("Backend token not found in storage");
 				updateStatus("Backend authentication token missing", "error");
 				return;
 			}
 
-			const response = await fetch("http://localhost:4000/api/predict", {
+			// Build URL with query parameters
+			const baseUrl = "http://localhost:4000/api/predict";
+			const params = new URLSearchParams({
+				hide: autoHideEnabled.toString(),
+				mute: autoMuteEnabled.toString(),
+			});
+			const url = `${baseUrl}?${params}`;
+
+			const response = await fetch(url, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					"Authorization": `Bearer ${backendToken}`,
+					Authorization: `Bearer ${backendToken}`,
 				},
 				body: JSON.stringify(formattedData),
 			});
 
 			if (!response.ok) {
 				if (response.status === 401) {
-					updateStatus("Backend authentication failed - invalid token", "error");
+					updateStatus(
+						"Backend authentication failed - invalid token",
+						"error"
+					);
 				} else if (response.status === 403) {
-					updateStatus("Backend access forbidden - insufficient permissions", "error");
+					updateStatus(
+						"Backend access forbidden - insufficient permissions",
+						"error"
+					);
 				} else {
 					updateStatus(`Backend error: ${response.status}`, "error");
 				}
@@ -205,6 +230,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			const result = await response.json();
 			console.log("Prediction results:", result);
+
+			// Update status to show scan completed when response is OK
+			updateStatus("Scan completed successfully", "success");
 
 			processPredictionResults(result, formattedData.tweet_data);
 		} catch (error) {
@@ -218,7 +246,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	function processPredictionResults(results, tweetData) {
 		if (Array.isArray(results)) {
 			const toxicCount = results.filter(
-				(result) => result && result.toxic === true,
+				(result) => result && result.toxic === true
 			).length;
 
 			if (toxicCount > 0) {
@@ -226,7 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			} else {
 				updateStatus(
 					`No toxic content detected in ${results.length} replies`,
-					"success",
+					"success"
 				);
 			}
 
@@ -245,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	function createUsernameMap(users) {
 		const usernameMap = {};
 		if (users && Array.isArray(users)) {
-			users.forEach(user => {
+			users.forEach((user) => {
 				usernameMap[user.id] = user.username;
 			});
 		}
@@ -259,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			if (consecutiveErrors >= maxConsecutiveErrors) {
 				updateStatus(
 					`Too many consecutive errors (${consecutiveErrors}). Taking a longer break before retrying.`,
-					"error",
+					"error"
 				);
 				retryDelay = maxRetryDelay;
 				return false;
@@ -275,7 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			updateStatus(
 				`Found ${tweets.length} tweets. Analyzing replies...`,
-				"info",
+				"info"
 			);
 
 			const tweetsToProcess = tweets.slice(0, 5);
@@ -283,13 +311,13 @@ document.addEventListener("DOMContentLoaded", () => {
 			for (const tweet of tweetsToProcess) {
 				const conversationId = tweet.conversation_id || tweet.id;
 				const repliesData = await getReplies(conversationId, accessToken);
-				
+
 				const replies = repliesData.tweets;
 				const users = repliesData.users;
 
 				if (replies.length === 0) {
 					updateStatus("No replies found to analyze", "warning");
-					continue; 
+					continue;
 				} else {
 					const usernameMap = createUsernameMap(users);
 
@@ -299,7 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
 							tweet_id: reply.id,
 							tweet_text: reply.text,
 							user_id: reply.author_id,
-							username: usernameMap[reply.author_id] || "unknown"
+							username: usernameMap[reply.author_id] || "unknown",
 						}));
 
 					allReplies.push(...formattedReplies);
@@ -312,12 +340,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			if (allReplies.length > 0) {
 				const formattedData = {
-					tweet_data: allReplies
+					tweet_data: allReplies,
 				};
 
 				updateStatus(
 					`Analyzing ${allReplies.length} replies for toxic content...`,
-					"info",
+					"info"
 				);
 				await sendRepliesToPredictor(formattedData);
 			} else {
@@ -367,7 +395,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					console.log("GuardX Protection Service: Active");
 					updateStatus(
 						"Protection active - monitoring for toxic replies",
-						"success",
+						"success"
 					);
 
 					if (retryTimeout) {
@@ -377,7 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 					const scanSuccessful = await scrapeUserReplies(
 						result.twitter_user_data.twitter_user_id,
-						result.twitter_access_token,
+						result.twitter_access_token
 					);
 
 					if (!scanSuccessful) {
@@ -385,9 +413,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 						updateStatus(
 							`Service paused. Retrying in ${Math.round(
-								actualDelay / 1000,
+								actualDelay / 1000
 							)} seconds...`,
-							"warning",
+							"warning"
 						);
 
 						retryTimeout = setTimeout(() => {
@@ -416,7 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
 									updateStatus("Running scheduled scan...", "info");
 									const scanResult = await scrapeUserReplies(
 										currentData.twitter_user_data.twitter_user_id,
-										currentData.twitter_access_token,
+										currentData.twitter_access_token
 									);
 
 									if (!scanResult) {
@@ -426,9 +454,9 @@ document.addEventListener("DOMContentLoaded", () => {
 										const actualDelay = getRetryDelayWithJitter(retryDelay);
 										updateStatus(
 											`Service paused. Retrying in ${Math.round(
-												actualDelay / 1000,
+												actualDelay / 1000
 											)} seconds...`,
-											"warning",
+											"warning"
 										);
 
 										retryTimeout = setTimeout(() => {
@@ -439,7 +467,7 @@ document.addEventListener("DOMContentLoaded", () => {
 									} else {
 										updateStatus(
 											"Monitoring active. Next scan in 20 minutes.",
-											"success",
+											"success"
 										);
 									}
 								} else {
@@ -447,13 +475,13 @@ document.addEventListener("DOMContentLoaded", () => {
 									chrome.storage.local.remove(["guardx_scan_interval_id"]);
 									updateStatus("Protection service stopped", "warning");
 								}
-							},
+							}
 						);
 					}, scanInterval);
 
 					chrome.storage.local.set({ guardx_scan_interval_id: intervalId });
 				}
-			},
+			}
 		);
 	}
 
@@ -473,6 +501,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		});
 	}
 
+	// Initialize toggles from storage
 	chrome.storage.local.get(
 		[
 			"twitter_user_data",
@@ -480,6 +509,8 @@ document.addEventListener("DOMContentLoaded", () => {
 			"twitter_authenticated",
 			"twitter_access_token",
 			"guardx_protection_enabled",
+			"guardx_auto_hide_enabled",
+			"guardx_auto_mute_enabled",
 			"backend_token",
 		],
 		(result) => {
@@ -494,9 +525,12 @@ document.addEventListener("DOMContentLoaded", () => {
 										}</strong></p>
                 </div>
             `;
-				
+
 				if (!result.backend_token) {
-					updateStatus("Warning: Backend authentication token not configured", "warning");
+					updateStatus(
+						"Warning: Backend authentication token not configured",
+						"warning"
+					);
 					console.warn("Backend token is missing. Please set it in storage.");
 				}
 			} else {
@@ -514,16 +548,46 @@ document.addEventListener("DOMContentLoaded", () => {
 					});
 			}
 
+			// Set toggle states from storage
 			protectionToggle.checked = result.guardx_protection_enabled === true;
+			autoHideToggle.checked = result.guardx_auto_hide_enabled === true;
+			autoMuteToggle.checked = result.guardx_auto_mute_enabled === true;
 
 			if (result.guardx_protection_enabled === true) {
 				startProtectionService();
 			} else {
 				updateStatus("Protection is currently disabled", "warning");
 			}
-		},
+		}
 	);
 
+	// Auto Hide toggle event listener
+	autoHideToggle.addEventListener("change", (event) => {
+		const isEnabled = event.target.checked;
+
+		chrome.storage.local.set({ guardx_auto_hide_enabled: isEnabled }, () => {
+			console.log(`Auto Hide ${isEnabled ? "enabled" : "disabled"}`);
+			updateStatus(
+				`Auto Hide ${isEnabled ? "enabled" : "disabled"}`,
+				isEnabled ? "success" : "warning"
+			);
+		});
+	});
+
+	// Auto Mute toggle event listener
+	autoMuteToggle.addEventListener("change", (event) => {
+		const isEnabled = event.target.checked;
+
+		chrome.storage.local.set({ guardx_auto_mute_enabled: isEnabled }, () => {
+			console.log(`Auto Mute ${isEnabled ? "enabled" : "disabled"}`);
+			updateStatus(
+				`Auto Mute ${isEnabled ? "enabled" : "disabled"}`,
+				isEnabled ? "success" : "warning"
+			);
+		});
+	});
+
+	// Protection toggle event listener
 	protectionToggle.addEventListener("change", (event) => {
 		const isEnabled = event.target.checked;
 
@@ -549,11 +613,13 @@ document.addEventListener("DOMContentLoaded", () => {
 				"twitter_access_token",
 				"twitter_cache_id",
 				"backend_token",
+				"guardx_auto_hide_enabled",
+				"guardx_auto_mute_enabled",
 			],
 			() => {
 				chrome.action.setPopup({ popup: "login.html" });
 				window.location.href = "login.html";
-			},
+			}
 		);
 	});
 });
